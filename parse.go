@@ -99,6 +99,7 @@ func parse(b []byte,ch ContentHandler) error {
 		idx = elemEnd.FindSubmatchIndex(b)
 		if len(idx)!=0 {
 			if len(stack)>0 {
+				ch.EndElement()
 				ch = stack[len(stack)-1]
 				stack = stack[:len(stack)-1]
 			} else {
@@ -120,6 +121,7 @@ func parse(b []byte,ch ContentHandler) error {
 		if len(stack)>0 {
 			return fmt.Errorf("unexpected EOF")
 		}
+		ch.EndElement()
 		return nil
 	}
 	panic("unreachable")

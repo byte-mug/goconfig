@@ -32,22 +32,65 @@ type ContentHandler interface{
 */
 import "reflect"
 import "regexp"
+import "encoding"
+import "errors"
+import "strconv"
 
 var reflectPurify = regexp.MustCompile(`^[\$\%\@]`)
 var reflectPurify2 = regexp.MustCompile(`[\!]$`)
 
-const (
-)
+var EReflectDecodeValueError = errors.New("EReflectDecodeValueError")
 
 func reflectEat(v reflect.Value) {}
 
-func decodeKey(v reflect.Value, val []byte) {
-	v.SetString(string(val))
+func reflectDecodePrinizpial(v reflect.Value, val []byte) error {
+	i := v.Interface()
+	if t,ok := i.(encoding.TextUnmarshaler) ; ok && t!=nil {
+		return t.UnmarshalText(val)
+	}
+	switch v.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		{
+			tni,e := strconv.ParseInt(string(val),0,64)
+			if e!=nil { return e }
+			v.SetInt(tni)
+			return nil
+		}
+	case reflect.Uint,reflect.Uint8,reflect.Uint16,reflect.Uint32,reflect.Uint64:
+		{
+			tni,e := strconv.ParseUint(string(val),0,64)
+			if e!=nil { return e }
+			v.SetUint(tni)
+			return nil
+		}
+	case reflect.Float32,reflect.Float64:
+		{
+			f,e := strconv.ParseFloat(string(val),64)
+			if e!=nil { return e }
+			v.SetFloat(f)
+			return nil
+		}
+	case reflect.String:
+		v.SetString(string(val))
+		return nil
+	}
+	return EReflectDecodeValueError
 }
-func decodeValue(v reflect.Value, val []byte) {
-	v.SetString(string(val))
+
+func reflectDecodeKey(v reflect.Value, val []byte) error {
+	return reflectDecodePrinizpial(v,val)
 }
-func spawnHandler(v reflect.Value, eat func(v reflect.Value), clazz, word []byte) ContentHandler {
+func reflectDecodeValue(v reflect.Value, val []byte) error {
+	return reflectDecodePrinizpial(v,val)
+}
+
+func CreateReflectHandler(i interface{}) ContentHandler {
+	return reflectSpawnHandlerInner(reflect.Indirect(reflect.ValueOf(i)),reflectEat,false,nil,nil)
+}
+func reflectSpawnHandler(v reflect.Value, eat func(v reflect.Value), clazz, word []byte) ContentHandler {
+	return reflectSpawnHandlerInner(v,eat,true,clazz,word)
+}
+func reflectSpawnHandlerInner(v reflect.Value, eat func(v reflect.Value), isprop bool, clazz, word []byte) ContentHandler {
 	start:
 	switch v.Type().Kind() {
 	case reflect.Ptr:
@@ -75,13 +118,16 @@ func spawnHandler(v reflect.Value, eat func(v reflect.Value), clazz, word []byte
 			if nn1=="" { rh.fieldsSigil[i]='$' } else { rh.fieldsSigil[i]=int(nn1[0]&0xff) }
 			//nn1 = reflectPurify2.FindString(nn)
 			//nn = reflectPurify2.ReplaceAllString(nn, "")
-			if on=="" { on = nn }
+			if nn!="" { on = nn }
 			rh.fieldsIdx[on] = i
 		}
 		rh.KeyValuePair(clazz,word)
 		return rh
 		}
 	case reflect.Map:{
+		if v.IsNil() {
+			v.Set(reflect.MakeMap(v.Type()))
+		}
 		rh := new(reflectHandler)
 		rh.v = v
 		rh.t = v.Type()
@@ -109,24 +155,28 @@ func (r *reflectHandler) StartElement(clazz, word []byte) ContentHandler {
 	if i,ok := r.fieldsIdx[string(clazz)] ; ok {
 		switch r.fieldsSigil[i] {
 		case '%':{
+				mv := r.v.Field(i)
+				if mv.IsNil() {
+					mv.Set(reflect.MakeMap(r.t.Field(i).Type))
+				}
 				mt := r.t.Field(i).Type
 				k := reflect.New(mt.Key()).Elem()
 				v := reflect.New(mt.Elem()).Elem()
-				decodeKey  (k,word)
-				return spawnHandler(v,func(v2 reflect.Value){
+				reflectDecodeKey  (k,word)
+				return reflectSpawnHandler(v,func(v2 reflect.Value){
 					r.v.Field(i).SetMapIndex(k,v2)
 				},clazz,word)
 			}
 		case '@':{
 				mt := r.t.Field(i).Type
 				v := reflect.New(mt.Elem()).Elem()
-				return spawnHandler(v,func(v2 reflect.Value){
+				return reflectSpawnHandler(v,func(v2 reflect.Value){
 					pv := r.v.Field(i)
 					pv.Set(reflect.Append(pv,v2))
 				},clazz,word)
 			}
 		case '$':
-			return spawnHandler(r.v.Field(i),reflectEat,clazz,word)
+			return reflectSpawnHandler(r.v.Field(i),reflectEat,clazz,word)
 		}
 		return nil
 	}
@@ -141,8 +191,8 @@ func (r *reflectHandler) KeyValuePair(key, value []byte) {
 	if r.isMap {
 		k := reflect.New(r.t.Key()).Elem()
 		v := reflect.New(r.t.Elem()).Elem()
-		decodeKey  (k,key  )
-		decodeValue(v,value)
+		reflectDecodeKey  (k,key  )
+		reflectDecodeValue(v,value)
 		r.v.SetMapIndex(k,v)
 		return
 	}
@@ -150,12 +200,12 @@ func (r *reflectHandler) KeyValuePair(key, value []byte) {
 		switch r.fieldsSigil[i] {
 		case '@':{
 				v := reflect.New(r.t.Field(i).Type).Elem()
-				decodeValue(v,value)
+				reflectDecodeValue(v,value)
 				pv := r.v.Field(i)
 				pv.Set(reflect.Append(pv,v))
 			}
 		case '$':
-			decodeValue(r.v.Field(i),value)
+			reflectDecodeValue(r.v.Field(i),value)
 		}
 		return
 	}
