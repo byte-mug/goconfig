@@ -109,7 +109,7 @@ func parse(b []byte,ch ContentHandler) error {
 		idx = element.FindSubmatchIndex(b)
 		if len(idx)!=0 {
 			clazz := b[idx[2]:idx[3]]
-			nch := ch.StartElement(clazz,nil)
+			nch := chDef(ch.StartElement(clazz,nil))
 			stack = append(stack,ch)
 			ch = nch
 			b = b[idx[1]:]
