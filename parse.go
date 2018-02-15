@@ -25,9 +25,13 @@ package goconfig
 
 import "regexp"
 import "fmt"
+import "strconv"
+
+const pEscape = `(?:\\.|[^\\])`
+const pKey = `[\w-]`
 
 var comment = regexp.MustCompile(`^[\t ]*\#`)
-var preprocess = regexp.MustCompile(`(?:\".*?\"|\'.*?\'|[\t ]*\#[^\n]*)`)
+var preprocess = regexp.MustCompile(`(?:\"`+pEscape+`*?\"|\'`+pEscape+`*?\'|[\t ]*\#[^\n]*)`)
 
 func replComment(s string) string {
 	if comment.MatchString(s) { return "" }
@@ -65,13 +69,13 @@ func (c contentHandler) StartElement(clazz, word []byte) ContentHandler { return
 func (c contentHandler) EndElement() {}
 func (c contentHandler) KeyValuePair(key, value []byte) {}
 
-var elemenEx = regexp.MustCompile(`^\s*(\S+)\s+(\S+)\s*{`/*}*/)
-var element  = regexp.MustCompile(`^\s*(\S+)\s*{`/*}*/)
+var elemenEx = regexp.MustCompile(`^\s*(`+pKey+`+)\s+(\S+)\s*{`/*}*/)
+var element  = regexp.MustCompile(`^\s*(`+pKey+`+)\s*{`/*}*/)
 var elemEnd  = regexp.MustCompile(/*{*/`^\s*}`)
 
-var kvpair1 = regexp.MustCompile(`^\s*(\S+)\:\s+\"(\S+)\"`)
-var kvpair2 = regexp.MustCompile(`^\s*(\S+)\:\s+\'(\S+)\'`)
-var kvpair = regexp.MustCompile(`^\s*(\S+)\:\s+(\S+)`)
+var kvpair1 = regexp.MustCompile(`^\s*(`+pKey+`+)\:\s+\"(`+pEscape+`+)\"`)
+var kvpair2 = regexp.MustCompile(`^\s*(`+pKey+`+)\:\s+\'(`+pEscape+`+)\'`)
+var kvpair = regexp.MustCompile(`^\s*(`+pKey+`+)\:\s+(\S+)`)
 
 func parse(b []byte,ch ContentHandler) error {
 	stack := make([]ContentHandler,0,16)
@@ -109,11 +113,17 @@ func parse(b []byte,ch ContentHandler) error {
 			continue
 		}
 		idx = kvpair1.FindSubmatchIndex(b)
+		needDec := true
 		if len(idx)==0 { idx = kvpair2.FindSubmatchIndex(b) }
-		if len(idx)==0 { idx = kvpair.FindSubmatchIndex(b) }
+		if len(idx)==0 { idx = kvpair.FindSubmatchIndex(b); needDec = false }
 		if len(idx)!=0 {
 			k := b[idx[2]:idx[3]]
 			v := b[idx[4]:idx[5]]
+			if needDec {
+				if vs,ve := strconv.Unquote("\""+string(v)+"\""); ve==nil {
+					v = []byte(vs)
+				}
+			}
 			ch.KeyValuePair(k,v)
 			b = b[idx[1]:]
 			continue
