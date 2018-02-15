@@ -52,10 +52,20 @@ func reflectContains(s string, b byte) bool {
 
 func reflectEat(v reflect.Value) {}
 
+var reflectTypeTextUnmarshaler = reflect.ValueOf(new(encoding.TextUnmarshaler)).Type().Elem()
+
 func reflectDecodePrinizpial(v reflect.Value, val []byte) error {
-	i := v.Interface()
-	if t,ok := i.(encoding.TextUnmarshaler) ; ok && t!=nil {
-		return t.UnmarshalText(val)
+	if v.Type().Implements(reflectTypeTextUnmarshaler) {
+		return v.Interface().(encoding.TextUnmarshaler).UnmarshalText(val)
+	}
+	if reflect.PtrTo(v.Type()).Implements(reflectTypeTextUnmarshaler) {
+		if v.CanAddr() {
+			return v.Addr().Interface().(encoding.TextUnmarshaler).UnmarshalText(val)
+		}
+		v2 := reflect.New(v.Type())
+		e := v2.Interface().(encoding.TextUnmarshaler).UnmarshalText(val)
+		if e==nil { v.Set(v2.Elem()) }
+		return e
 	}
 	switch v.Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
