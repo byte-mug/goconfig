@@ -42,6 +42,11 @@ func replCommentB(s []byte) []byte {
 	return s
 }
 
+/*
+ * This type exists, to test the string removal function.
+ * Do not use this type or it's methods to pre-process the input for the parser,
+ * because, the parser does this on its own.
+ */
 type DeComment struct{}
 
 func (d DeComment) OfString(s string) string {
@@ -69,13 +74,13 @@ func (c contentHandler) StartElement(clazz, word []byte) ContentHandler { return
 func (c contentHandler) EndElement() {}
 func (c contentHandler) KeyValuePair(key, value []byte) {}
 
-var elemenEx = regexp.MustCompile(`^\s*(`+pKey+`+)\s+(\S+)\s*{`/*}*/)
-var element  = regexp.MustCompile(`^\s*(`+pKey+`+)\s*{`/*}*/)
+var elemenEx = regexp.MustCompile(`^\s*(`+pKey+`+)\s+(\S+)\s+{`/*}*/)
+var element  = regexp.MustCompile(`^\s*(`+pKey+`+)\s+{`/*}*/)
 var elemEnd  = regexp.MustCompile(/*{*/`^\s*}`)
 
-var kvpair1 = regexp.MustCompile(`^\s*(`+pKey+`+)\:\s+\"(`+pEscape+`+)\"`)
-var kvpair2 = regexp.MustCompile(`^\s*(`+pKey+`+)\:\s+\'(`+pEscape+`+)\'`)
-var kvpair = regexp.MustCompile(`^\s*(`+pKey+`+)\:\s+(\S+)`)
+var kvpair1 = regexp.MustCompile(`^\s*(`+pKey+`+)\s*\:\s*\"(`+pEscape+`+)\"`)
+var kvpair2 = regexp.MustCompile(`^\s*(`+pKey+`+)\s*\:\s*\'(`+pEscape+`+)\'`)
+var kvpair = regexp.MustCompile(`^\s*(`+pKey+`+)\s*\:\s*(\S+)`)
 
 func parse(b []byte,ch ContentHandler) error {
 	stack := make([]ContentHandler,0,16)
