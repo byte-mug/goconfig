@@ -74,6 +74,8 @@ func (c contentHandler) StartElement(clazz, word []byte) ContentHandler { return
 func (c contentHandler) EndElement() {}
 func (c contentHandler) KeyValuePair(key, value []byte) {}
 
+var elemenEx1 = regexp.MustCompile(`^\s*(`+pKey+`+)\s+\"(`+pEscape+`+)\"\s+{`/*}*/)
+var elemenEx2 = regexp.MustCompile(`^\s*(`+pKey+`+)\s+\'(`+pEscape+`+)\'\s+{`/*}*/)
 var elemenEx = regexp.MustCompile(`^\s*(`+pKey+`+)\s+(\S+)\s+{`/*}*/)
 var element  = regexp.MustCompile(`^\s*(`+pKey+`+)\s+{`/*}*/)
 var elemEnd  = regexp.MustCompile(/*{*/`^\s*}`)
@@ -86,10 +88,18 @@ func parse(b []byte,ch ContentHandler) error {
 	stack := make([]ContentHandler,0,16)
 	
 	for {
-		idx := elemenEx.FindSubmatchIndex(b)
+		needDec := true
+		idx := elemenEx1.FindSubmatchIndex(b)
+		if len(idx)==0 { idx = elemenEx2.FindSubmatchIndex(b) }
+		if len(idx)==0 { idx = elemenEx.FindSubmatchIndex(b) }
 		if len(idx)!=0 {
 			clazz := b[idx[2]:idx[3]]
 			word  := b[idx[4]:idx[5]]
+			if needDec {
+				if vs,ve := strconv.Unquote("\""+string(word)+"\""); ve==nil {
+					word = []byte(vs)
+				}
+			}
 			nch := chDef(ch.StartElement(clazz,word))
 			stack = append(stack,ch)
 			ch = nch
@@ -118,7 +128,7 @@ func parse(b []byte,ch ContentHandler) error {
 			continue
 		}
 		idx = kvpair1.FindSubmatchIndex(b)
-		needDec := true
+		needDec = true
 		if len(idx)==0 { idx = kvpair2.FindSubmatchIndex(b) }
 		if len(idx)==0 { idx = kvpair.FindSubmatchIndex(b); needDec = false }
 		if len(idx)!=0 {
