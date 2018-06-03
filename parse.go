@@ -27,6 +27,8 @@ import "regexp"
 import "fmt"
 import "strconv"
 
+func pEscape2(s string) string { return `(?:\\.|[^\\`+s+`])` }
+
 const pEscape = `(?:\\.|[^\\])`
 const pKey = `[\w-]`
 
@@ -74,14 +76,14 @@ func (c contentHandler) StartElement(clazz, word []byte) ContentHandler { return
 func (c contentHandler) EndElement() {}
 func (c contentHandler) KeyValuePair(key, value []byte) {}
 
-var elemenEx1 = regexp.MustCompile(`^\s*(`+pKey+`+)\s+\"(`+pEscape+`+)\"\s+{`/*}*/)
-var elemenEx2 = regexp.MustCompile(`^\s*(`+pKey+`+)\s+\'(`+pEscape+`+)\'\s+{`/*}*/)
+var elemenEx1 = regexp.MustCompile(`^\s*(`+pKey+`+)\s+\"(`+pEscape+`+?)\"\s+{`/*}*/)
+var elemenEx2 = regexp.MustCompile(`^\s*(`+pKey+`+)\s+\'(`+pEscape+`+?)\'\s+{`/*}*/)
 var elemenEx = regexp.MustCompile(`^\s*(`+pKey+`+)\s+(\S+)\s+{`/*}*/)
 var element  = regexp.MustCompile(`^\s*(`+pKey+`+)\s+{`/*}*/)
 var elemEnd  = regexp.MustCompile(/*{*/`^\s*}`)
 
-var kvpair1 = regexp.MustCompile(`^\s*(`+pKey+`+)\s*\:\s*\"(`+pEscape+`+)\"`)
-var kvpair2 = regexp.MustCompile(`^\s*(`+pKey+`+)\s*\:\s*\'(`+pEscape+`+)\'`)
+var kvpair1 = regexp.MustCompile(`^\s*(`+pKey+`+)\s*\:\s*\"(`+pEscape+`+?)\"`)
+var kvpair2 = regexp.MustCompile(`^\s*(`+pKey+`+)\s*\:\s*\'(`+pEscape+`+?)\'`)
 var kvpair = regexp.MustCompile(`^\s*(`+pKey+`+)\s*\:\s*(\S+)`)
 
 func parse(b []byte,ch ContentHandler) error {
