@@ -47,11 +47,18 @@ struct {
 ```
 
 The compatibility of between sigils and entry types.
+
 | | key-value pairs | group entries |
 | --- | --- | --- |
 |`$`|yes|yes|
 |`@`|yes|yes|
 |`%`|no|yes|
+
+| Command | Description |
+| --- | --- |
+| git status | List all new or modified files |
+| git diff | Show file differences that haven't been staged |
+
 
 Key-Value pairs are handled as follows:
 
