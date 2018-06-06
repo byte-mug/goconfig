@@ -47,8 +47,8 @@ struct {
 ```
 
 The compatibility of between sigils and entry types.
-| |key-value pairs|group entries|
-|-|-|-|
+| | key-value pairs | group entries |
+| --- | --- | --- |
 |`$`|yes|yes|
 |`@`|yes|yes|
 |`%`|no|yes|
