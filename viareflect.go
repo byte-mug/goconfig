@@ -242,7 +242,7 @@ func (r *reflectHandler) KeyValuePair(key, value []byte) {
 	if i,ok := r.fieldsIdx[string(key)] ; ok {
 		switch r.fieldsSigil[i] {
 		case '@':{
-				v := reflect.New(r.t.Field(i).Type).Elem()
+				v := reflect.New(r.t.Field(i).Type.Elem()).Elem()
 				e := reflectDecodeValue(v,value)
 				if e!=nil { return }
 				pv := r.v.Field(i)
