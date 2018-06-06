@@ -54,12 +54,6 @@ The compatibility of between sigils and entry types.
 |`@`|yes|yes|
 |`%`|no|yes|
 
-| Command | Description |
-| --- | --- |
-| git status | List all new or modified files |
-| git diff | Show file differences that haven't been staged |
-
-
 Key-Value pairs are handled as follows:
 
 * The key is used to select the target field.
