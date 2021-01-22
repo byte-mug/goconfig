@@ -3,7 +3,7 @@ Yet another configuration Language
 
 It is inspired by the configuration format seen in the [Current INN Documentation](https://www.eyrie.org/~eagle/software/inn/docs/).
 
-[![GoDoc](https://byte-mug.github.io/pkg/godoc-status.svg)](https://byte-mug.github.io/pkg/github.com/byte-mug/goconfig)
+[![GoDoc](https://byte-mug.github.io/pkg/godoc-status.svg)](https://byte-mug.github.io/pkg/github.com/byte-mug/goconfig/)
 
 ## Format Description
 
